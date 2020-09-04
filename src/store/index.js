@@ -105,58 +105,58 @@ const store = new Vuex.Store({
      * [请求：初始数据]
      */
     A_submitDividingGanttSummary({ state, commit }) {
-      const res = JSON.parse(localStorage.getItem('提报工厂甘特表'))
-      console.log('初始数据 ----- ', res.data)
-      //
-      const { ganttTemplate, itemSummaryItemData, itemSummaryDataList, nodeData, startEndDateMap, divdingData } = res.data
-      const { returnTopData, order_time, deliver_date, qcArr } = Tool.returnTopData(itemSummaryItemData)
-      state.ganttTemplate = ganttTemplate || [] //                模板信息
-      state.itemSummaryItemData = returnTopData //                顶部数据
-      state.order_time = order_time //                            下单时间
-      state.deliver_date = deliver_date //                        交货日期
-      state.nodeData = Tool.concatNodeData({}, nodeData) || {} // 表头信息
-      state.startEndDateMap = startEndDateMap || {} //            基础节点日期
-      state.itemSummaryDataList = itemSummaryDataList || [] //    旧数据
-      state.divdingData = divdingData //                          新数据
-      state.qcArr = qcArr //                                      QC岗位人员信息
-      //
-      /** 复制：新模板数据 **/
-      state.copyNewData = Tool.copyNewTemplateData(divdingData.nodeTempleteDetail)
-      /** 返回：表格数据 **/
-      commit('returnTableData')
+      // const res = JSON.parse(localStorage.getItem('提报工厂甘特表'))
+      // // console.log('初始数据 ----- ', res.data)
+      // //
+      // const { ganttTemplate, itemSummaryItemData, itemSummaryDataList, nodeData, startEndDateMap, divdingData } = res.data
+      // const { returnTopData, order_time, deliver_date, qcArr } = Tool.returnTopData(itemSummaryItemData)
+      // state.ganttTemplate = ganttTemplate || [] //                模板信息
+      // state.itemSummaryItemData = returnTopData //                顶部数据
+      // state.order_time = order_time //                            下单时间
+      // state.deliver_date = deliver_date //                        交货日期
+      // state.nodeData = Tool.concatNodeData({}, nodeData) || {} // 表头信息
+      // state.startEndDateMap = startEndDateMap || {} //            基础节点日期
+      // state.itemSummaryDataList = itemSummaryDataList || [] //    旧数据
+      // state.divdingData = divdingData //                          新数据
+      // state.qcArr = qcArr //                                      QC岗位人员信息
+      // //
+      // /** 复制：新模板数据 **/
+      // state.copyNewData = Tool.copyNewTemplateData(divdingData.nodeTempleteDetail)
+      // /** 返回：表格数据 **/
+      // commit('returnTableData')
 
-      // const { item_id, plant_order_id } = JSON.parse(localStorage.getItem('NOVA_orderItemNodeFrom') || '{}')
-      // const name = '初始数据'
-      // // const obj = { item_id: '2c9f10b674006259017405885a9f0291', type: 3, plant_order_id: '2c9f10b6740973c0017409cf4f0b0186' }
-      // const obj = { item_id, type: 3, plant_order_id }
-      // const suc = function (res) {
-      //   const { data, msg, status } = res
-      //   if (String(status) === '0') {
-      //     // eslint-disable-next-line
-      //     MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false, callback() { dg.close() } })
-      //   } else {
-      //     // console.log('初始数据 ----- ', res)
-      //     // localStorage.setItem('提报工厂甘特表', JSON.stringify(res))
-      //     //
-      //     const { ganttTemplate, itemSummaryItemData, itemSummaryDataList, nodeData, startEndDateMap, divdingData } = data
-      //     const { returnTopData, order_time, deliver_date, qcArr } = Tool.returnTopData(itemSummaryItemData)
-      //     state.ganttTemplate = ganttTemplate || [] //                模板信息
-      //     state.itemSummaryItemData = returnTopData //                顶部数据
-      //     state.order_time = order_time //                            下单时间
-      //     state.deliver_date = deliver_date //                        交货日期
-      //     state.nodeData = Tool.concatNodeData({}, nodeData) || {} // 表头信息
-      //     state.startEndDateMap = startEndDateMap || {} //            基础节点日期
-      //     state.itemSummaryDataList = itemSummaryDataList || [] //    旧数据
-      //     state.divdingData = divdingData //                          新数据
-      //     state.qcArr = qcArr //                                      QC岗位人员信息
-      //     //
-      //     /** 复制：新模板数据 **/
-      //     state.copyNewData = Tool.copyNewTemplateData(divdingData.nodeTempleteDetail)
-      //     /** 返回：表格数据 **/
-      //     commit('returnTableData')
-      //   }
-      // }
-      // Api({ name, obj, suc })
+      const { item_id, plant_order_id } = JSON.parse(localStorage.getItem('NOVA_orderItemNodeFrom') || '{}')
+      const name = '初始数据'
+      // const obj = { item_id: '2c9f10b674006259017405885a9f0291', type: 3, plant_order_id: '2c9f10b6740973c0017409cf4f0b0186' }
+      const obj = { item_id, type: 3, plant_order_id }
+      const suc = function (res) {
+        const { data, msg, status } = res
+        if (String(status) === '0') {
+          // eslint-disable-next-line
+          MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false, callback() { dg.close() } })
+        } else {
+          // console.log('初始数据 ----- ', res)
+          // localStorage.setItem('提报工厂甘特表', JSON.stringify(res))
+          //
+          const { ganttTemplate, itemSummaryItemData, itemSummaryDataList, nodeData, startEndDateMap, divdingData } = data
+          const { returnTopData, order_time, deliver_date, qcArr } = Tool.returnTopData(itemSummaryItemData)
+          state.ganttTemplate = ganttTemplate || [] //                模板信息
+          state.itemSummaryItemData = returnTopData //                顶部数据
+          state.order_time = order_time //                            下单时间
+          state.deliver_date = deliver_date //                        交货日期
+          state.nodeData = Tool.concatNodeData({}, nodeData) || {} // 表头信息
+          state.startEndDateMap = startEndDateMap || {} //            基础节点日期
+          state.itemSummaryDataList = itemSummaryDataList || [] //    旧数据
+          state.divdingData = divdingData //                          新数据
+          state.qcArr = qcArr //                                      QC岗位人员信息
+          //
+          /** 复制：新模板数据 **/
+          state.copyNewData = Tool.copyNewTemplateData(divdingData.nodeTempleteDetail)
+          /** 返回：表格数据 **/
+          commit('returnTableData')
+        }
+      }
+      Api({ name, obj, suc })
     },
     /**
      * [请求：模板明细]

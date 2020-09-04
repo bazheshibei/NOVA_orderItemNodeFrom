@@ -80,7 +80,7 @@
     </el-table>
 
     <!-- 弹出层 -->
-    <el-dialog class="comDialog" :title="d_data.title" :visible.sync="dialogVisible" width="80%">
+    <el-dialog class="comDialog" :title="d_data.title" :visible.sync="dialogVisible" width="80%" :close-on-click-modal="false" :close-on-press-escape="false">
       <!-- 弹出层：表单 -->
       <div class="lineBox">
         <div class="lineLabel">当前节点：</div>
@@ -170,12 +170,19 @@ export default {
      * @param {[Object]} event    时间对象
      */
     blur_table(index, nodeId, nodeName, event) {
-      const value = Tool._toggleTime(event.target.value)
+      let value = Tool._toggleTime(event.target.value)
       const node = this.tableList[index][nodeId]
-      console.log(node)
-      node.isComputedOther = true
+      const { is_quote, first_plant_enddate } = node
+      if (is_quote === 1 && (!value || value === '/')) {
+        /* 报错还原：被引用 && （'' || '/'） */
+        this.$message.error('此节点被其他节点引用，不可为空或/')
+        value = ''
+      }
+      const is_change = first_plant_enddate !== value ? 1 : 0
+      node.is_change = is_change
       node.time = value
-      node.change_plan_time = value
+      node.change_plan_time = is_change === 1 ? value : ''
+      node.isComputedOther = true
       this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
       this.$store.commit('saveData', { name: 'isComputed', obj: true })
     },
@@ -243,7 +250,7 @@ export default {
      */
     submit() {
       const { d_data, tableList } = this
-      const { index, nodeId, nodeName, error, time, change_remaark, is_change, change_plan_time, first_plant_enddate, is_quote, isComputedOther } = d_data
+      const { index, nodeId, nodeName, error, time, change_plan_time, change_remaark, is_change, first_plant_enddate, is_quote, isComputedOther } = d_data
       /* 报错：报错 && 没写'调整/异常原因' */
       if (error && !change_remaark) {
         this.$message({ showClose: true, message: '请填写 调整/异常原因 后再保存', type: 'warning' })
@@ -259,13 +266,18 @@ export default {
         this.$message({ showClose: true, message: '请修改 调整日期 后再保存', type: 'warning' })
         return false
       }
+      /* ----- 保存 ----- */
       const node = tableList[index][nodeId]
-      node.time = time
+      node.time = change_plan_time
       node.change_plan_time = change_plan_time
-      node.error = error
       node.is_change = is_change
       node.change_remaark = change_remaark
       node.isComputedOther = isComputedOther
+      node.error = error
+      if (is_change === 0) {
+        node.time = time
+        node.change_plan_time = ''
+      }
       this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
       this.$store.commit('saveData', { name: 'isComputed', obj: true })
       this.dialogVisible = false
@@ -368,11 +380,6 @@ export default {
 </style>
 
 <style>
-/*** 弹出气泡 ***/
-.el-popover {
-  max-width: 400px !important;
-}
-
 /*** 输入框：报错 ***/
 .errorInput > input {
   color: #F56C6C !important;

@@ -63,7 +63,7 @@ module.exports = {
 
     // Paths
     assetsRoot: path.resolve(__dirname, '../plantorder'),
-    assetsSubDirectory: 'static',
+    assetsSubDirectory: 'orderItemNodeFrom',
     assetsPublicPath: '/nova/pages/plantorder/',
 
     /**
