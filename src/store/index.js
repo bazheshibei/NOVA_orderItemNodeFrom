@@ -127,7 +127,7 @@ const store = new Vuex.Store({
 
       const { item_id, plant_order_id } = JSON.parse(localStorage.getItem('NOVA_orderItemNodeFrom') || '{}')
       const name = '初始数据'
-      // const obj = { item_id: '2c9f10b674006259017405885a9f0291', type: 3, plant_order_id: '2c9f10b6740973c0017409cf4f0b0186' }
+      // const obj = { item_id: '40289281737e3a9b01737ead59b90035', type: 3, plant_order_id: '4028928173a272410173a3ac9ad30000' }
       const obj = { item_id, type: 3, plant_order_id }
       const suc = function (res) {
         const { data, msg, status } = res
@@ -156,7 +156,12 @@ const store = new Vuex.Store({
           commit('returnTableData')
         }
       }
-      Api({ name, obj, suc })
+      const err = function () {
+        // eslint-disable-next-line
+        MessageBox({ title: '加载失败，请重试', message: '', type: 'warning', closeOnClickModal: false, closeOnPressEscape: false, callback() { dg.close() } })
+      }
+      const loading = '数据加载中...'
+      Api({ name, obj, suc, err, loading })
     },
     /**
      * [请求：模板明细]
@@ -189,7 +194,11 @@ const store = new Vuex.Store({
         /** 返回：表格数据 **/
         commit('returnTableData')
       }
-      Api({ name, obj, suc })
+      const err = function () {
+        MessageBox({ title: '加载失败，请重试', message: '', type: 'warning', closeOnClickModal: false, closeOnPressEscape: false })
+      }
+      const loading = '加载模板中...'
+      Api({ name, obj, suc, err, loading })
     },
     /**
      * [请求：提报]
@@ -213,7 +222,11 @@ const store = new Vuex.Store({
           // eslint-disable-next-line
           dg.close()
         }
-        Api({ name, obj, suc })
+        const err = function () {
+          MessageBox({ title: '提交失败，请重试', message: '', type: 'warning', closeOnClickModal: false, closeOnPressEscape: false })
+        }
+        const loading = '提交中...'
+        Api({ name, obj, suc, err, loading })
         // console.log('提交时的节点数据 ----- ', dataList, name, obj, suc)
       }
     }

@@ -52,40 +52,4 @@ export default {
 .topBox {
   width: 100%;
 }
-/*** 表单 ***/
-.formLine { /* 单行 */
-  width: 100%;
-  font-size: 12px;
-  display: flex;
-}
-.formLabel { /* 标题 */
-  width: 70px;
-  min-width: 70px;
-  min-height: 34px;
-  white-space: nowrap;
-  padding: 0 4px;
-  border-right: 1px solid #DCDFE6;
-  border-bottom: 1px solid #DCDFE6;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.formTextBox {
-  display: flex;
-  flex-wrap: wrap;
-  flex: 1;
-}
-.formText { /* 值 */
-  white-space: nowrap;
-  padding: 6px 10px;
-  border-right: 1px solid #DCDFE6;
-  border-bottom: 1px solid #DCDFE6;
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.newTemplateText {
-  color: #F56C6C;
-}
 </style>
