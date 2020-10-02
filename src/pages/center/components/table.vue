@@ -36,7 +36,7 @@
       </el-table-column>
 
       <!-- 循环节点 -->
-      <el-table-column v-for="(item, index) in nodeData" :key="'node_' + index" :label="item" :column-key="index" width="130">
+      <el-table-column v-for="(item, index) in nodeData" :key="'node_' + index" :label="item" :column-key="index" width="140">
         <template slot-scope="scope">
           <div v-if="scope.row[index]">
             <span v-if="scope.row[index].is_delete === 0">/</span>

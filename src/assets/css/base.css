@@ -66,6 +66,10 @@ td > .cell {
 .el-table td, .el-table th.is-leaf {
   border-color: var(--tableBorder) !important;
 }
+/* 选中行 */
+.current-row > td {
+  background: yellow !important;
+}
 
 /**
  * [按钮 button]
@@ -187,15 +191,23 @@ td > .cell {
   border: 0 !important;
   box-shadow: none !important;
 }
+.el-tabs__header {
+  padding-top: 3px !important;
+  background: #91b5d6 !important;
+}
 .el-tabs__item { /* tab 顶部 */
   height: 30px !important;
-  color: var(--disabledColor) !important;
+  color: var(--thColor) !important;
   font-size: 12px !important;
   line-height: 30px !important;
+  margin-left: 3px !important;
   padding: 0 10px !important;
+  background: #ffffff !important;
+  border-top-left-radius: 6px !important;
+  border-top-right-radius: 6px !important;
 }
 .el-tabs__item.is-active { /* tab 激活 */
-  color: var(--thColor) !important;
+  color: #d37521 !important;
 }
 .el-tabs__content { /* tab 内容 */
   padding: 0 !important;
