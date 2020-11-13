@@ -236,7 +236,7 @@ td > .cell {
   border-top-right-radius: 4px !important;
   border-bottom-right-radius: 4px !important;
 }
-.errorInput > input { /* 输入框：报错 */
+.errorInput > input, .errorInput > textarea { /* 输入框：报错 */
   color: #F56C6C !important;
   border-color: #F56C6C !important;
 }

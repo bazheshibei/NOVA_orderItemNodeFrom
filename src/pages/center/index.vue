@@ -14,8 +14,8 @@
     <!-- 下一步 -->
     <div class="bottomBox">
       <div>
-        <el-button type="primary" size="mini" plain @click="submit(1)">暂存草稿</el-button>
-        <el-button type="primary" size="mini" @click="submit(2)">提交审核</el-button>
+        <el-button type="primary" size="mini" :disabled="!isHaveNewData" plain @click="submit(1)">暂存草稿</el-button>
+        <el-button type="primary" size="mini" :disabled="!isHaveNewData" @click="submit(2)">提交审核</el-button>
       </div>
     </div>
 
@@ -77,7 +77,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['activeTemplateId']),
+    ...mapState(['activeTemplateId', 'isHaveNewData']),
     ...mapGetters(['tableList'])
   },
 

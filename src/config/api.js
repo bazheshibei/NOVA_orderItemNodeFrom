@@ -5,7 +5,9 @@ import Axios from '@/config/axios'
 /**
  * [服务器地址]
  */
+/* 开发环境 */
 // const host = '/api/'
+/* 生产环境 */
 const host = window.location.origin + '/nova/'
 
 /**

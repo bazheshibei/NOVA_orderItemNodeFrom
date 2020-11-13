@@ -42,19 +42,21 @@
             <span v-if="scope.row[index].is_delete === 0">/</span>
             <div v-else-if="scope.row.rowType === 1">
               <!-- 计划完成：展示 -->
-              <div v-if="scope.row.isShow">
+              <div v-if="scope.row.isShow || String(scope.row[index].is_complete) === '1'">
                 {{scope.row[index].time}}
               </div>
               <!-- 计划完成：修改 -->
               <div v-else>
                 <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
-                  <div slot="reference" v-if="scope.row[index].submit_type === 2">
+                  <!-- 计划完成：修改 -> 用户提报 -->
+                  <div slot="reference" v-if="_isInputEdit(scope.row, index)">
                     <el-input class="comTimeInput" size="mini" placeholder="请输入日期" maxlength="10"
                       :class="scope.row[index].error ? 'errorInput' : ''" v-model="scope.row[index].time"
                       @blur="blur_table(scope.$index, index, item, $event)"
                     ></el-input>
                   </div>
-                  <span v-else class="hover" slot="reference" @click="edit(scope.$index, index, item)">
+                  <!-- 计划完成：修改 -> 系统计算 -->
+                  <span v-if="_isAlertEdit(scope.row, index)" class="hover" slot="reference" @click="edit(scope.$index, index, item)">
                     <span :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
                     <i class="el-icon-warning warningIcon" v-if="scope.row[index].error"></i>
                   </span>
@@ -63,13 +65,13 @@
             </div>
             <!-- 本次调整 -->
             <div v-else-if="scope.row.rowType === 2">
-              <div v-if="scope.row[index].submit_type === 2 && scope.row[index].error">
+              <div v-if="_isShowInput(scope.row, index)">
                 <el-input class="comTimeInput" :class="scope.row[index].error ? 'errorInput' : ''" placeholder="请输入异常原因" type="textarea"
-                  v-model="scope.row[index].change_remaark" size="mini"></el-input>
+                  v-model="scope.row[index].change_remaark" size="mini" @blur="blur_text(scope.$index, index, item, $event)"></el-input>
               </div>
-              <div style="text-align: left;" v-if="scope.row[index].submit_type !== 2">
-                <p v-if="scope.row[index].change_remaark">调整后：{{scope.row[index].change_plan_time || '未调整'}}</p>
-                <p v-if="scope.row[index].change_remaark">原因：{{scope.row[index].change_remaark}}</p>
+              <div style="text-align: left;" v-else>
+                <p v-if="_isShowText(scope.row, index)">调整后：{{scope.row[index].change_plan_time || '未调整'}}</p>
+                <p v-if="_isShowText(scope.row, index)">原因：{{scope.row[index].change_remaark}}</p>
               </div>
             </div>
           </div>
@@ -170,19 +172,23 @@ export default {
      * @param {[Object]} event    时间对象
      */
     blur_table(index, nodeId, nodeName, event) {
-      let value = Tool._toggleTime(event.target.value)
+      const value = Tool._toggleTime(event.target.value)
       const node = this.tableList[index][nodeId]
-      const { is_quote, first_plant_enddate } = node
-      if (is_quote === 1 && (!value || value === '/')) {
-        /* 报错还原：被引用 && （'' || '/'） */
-        this.$message.error('此节点被其他节点引用，不可为空或/')
-        value = ''
-      }
+      const { first_plant_enddate } = node
       const is_change = first_plant_enddate !== value ? 1 : 0
       node.is_change = is_change
       node.time = value
       node.change_plan_time = is_change === 1 ? value : ''
       node.isComputedOther = true
+      /* 触发计算 */
+      this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
+      this.$store.commit('saveData', { name: 'isComputed', obj: true })
+    },
+    blur_text(index, nodeId, nodeName, event) {
+      const value = event.target.value
+      const node = this.tableList[index][nodeId]
+      node.change_remaark = value
+      /* 触发计算 */
       this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
       this.$store.commit('saveData', { name: 'isComputed', obj: true })
     },
@@ -193,11 +199,10 @@ export default {
      * @param {[String]} nodeName 节点名称
      */
     edit(index, nodeId, nodeName) {
-      // console.log(nodeName, this.tableList[index])
       const { order_time, deliver_date } = this
       const row = this.tableList[index]
       const { short_name } = row
-      const { error, first_plant_enddate, time, change_remaark, is_change, change_plan_time, verification_remark, max_plant_enddate, min_plant_enddate, is_quote, isComputedOther = false } = row[nodeId]
+      const { error, first_plant_enddate, time, change_remaark, is_change = 0, change_plan_time, verification_remark, max_plant_enddate, min_plant_enddate, isComputedOther = false } = row[nodeId]
       const node_name = short_name ? [short_name, nodeName].join(' > ') : nodeName
       /* 赋值 */
       const d_data = {
@@ -216,7 +221,6 @@ export default {
         min_plant_enddate, //   日期最小值
         is_change, //           是否调整日期
         isComputedOther, //     是否根据当前节点的时间去计算其他节点
-        is_quote, //            是否被其他节点引用进行计算1是0否
         change_plan_time, //    调整后日期
         change_remaark //       调整/异常原因
       }
@@ -238,11 +242,11 @@ export default {
      */
     blur_dialog(name) {
       const { d_data } = this
-      const { max_plant_enddate, min_plant_enddate, order_time, deliver_date, is_quote } = d_data
+      const { max_plant_enddate, min_plant_enddate, order_time, deliver_date } = d_data
       const time = Tool._toggleTime(d_data[name])
       const { status } = Tool._isError(max_plant_enddate, min_plant_enddate, time, order_time, deliver_date)
       this.d_data.time = time
-      this.d_data.error = (is_quote === 1 && time === '/') ? true : status
+      this.d_data.error = status
       this.d_data.change_plan_time = name === 'change_plan_time' ? time : ''
     },
     /**
@@ -250,15 +254,10 @@ export default {
      */
     submit() {
       const { d_data, tableList } = this
-      const { index, nodeId, nodeName, error, time, change_plan_time, change_remaark, is_change, first_plant_enddate, is_quote, isComputedOther } = d_data
+      const { index, nodeId, nodeName, error, time, change_plan_time, change_remaark, is_change, first_plant_enddate, isComputedOther } = d_data
       /* 报错：报错 && 没写'调整/异常原因' */
       if (error && !change_remaark) {
         this.$message({ showClose: true, message: '请填写 调整/异常原因 后再保存', type: 'warning' })
-        return false
-      }
-      /* 报错：变更 && 被引用 && （时间 === '' || 时间 === '/'） */
-      if (is_change === 1 && is_quote === 1 && (change_plan_time === '' || change_plan_time === '/')) {
-        this.$message({ showClose: true, message: '此节点被其他节点引用，不能为空或/', type: 'warning' })
         return false
       }
       /* 报错：变更 && （没写时间 || 系统计算时间 === 当前时间） */
@@ -278,6 +277,7 @@ export default {
         node.time = time
         node.change_plan_time = ''
       }
+      /* 触发计算 */
       this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
       this.$store.commit('saveData', { name: 'isComputed', obj: true })
       this.dialogVisible = false
@@ -303,7 +303,71 @@ export default {
       const month = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : d.getMonth() + 1
       const day = d.getDate() < 10 ? '0' + d.getDate() : d.getDate()
       return `${year}-${month}-${day}`
+    },
+    /**
+     * [是否：input修改]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isInputEdit(row, index) {
+      const node = row[index]
+      let status = false
+      if (node) { // 有此节点
+        if (String(node.submit_type) === '2' || node.otherType === 1) { // 用户提报 || 系统计算为空值
+          status = true
+        }
+      }
+      return status
+    },
+    /**
+     * [是否：弹出层修改]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isAlertEdit(row, index) {
+      const node = row[index]
+      let status = false
+      if (node) {
+        if (String(node.submit_type) !== '2' && node.otherType !== 1) { // 系统计算 && 系统计算有值
+          status = true
+        }
+      }
+      return status
+    },
+    /**
+     * [是否：本次调整 显示 input]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isShowInput(row, index) {
+      const node = row[index]
+      let status = false
+      if (node) {
+        const { submit_type, error, otherType } = node
+        if ((String(submit_type) === '2' && error) || otherType === 1) { // (用户提报 && 日期报错) || 系统计算为空值)
+          status = true
+        }
+      }
+      return status
+    },
+    /**
+     * [是否：本次调整 显示 文字]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isShowText(row, index) {
+      const node = row[index]
+      let status = false
+      if (node.change_remaark) { // 调整说明
+        status = true
+      }
+      return status
     }
+    //
   }
 }
 </script>

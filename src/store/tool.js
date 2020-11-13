@@ -76,8 +76,7 @@ Tool.newDataAddAttr = function (nodeTempleteDetail = []) {
       max_plant_enddate: '', //   最大完成时间
       min_plant_enddate: '', //   最小完成时间
       node_audit_status: 0, //    节点完成审核状态，0未完成，1完成待审核，2审核通过，3审核驳回，审核通过后节点完成质量为合格，驳回后为不合格（新增）4无审核，直接完成,5撤销审核
-      time: '',
-      api_submit_type: 1
+      time: ''
     }
     arr.push(Object.assign({}, obj, item))
   })
@@ -155,24 +154,43 @@ Tool.returnTableData = function (state) {
     }
     if (activeTemplateId && isToggle && !data.isShow) { // 选了模板 && 切换模板 && 可编辑
       /* ----- 更新模板 ----- */
+      data.submit_type = 3
       const otherData = { is_change_template: 1, node_template_id: activeTemplateId } // 是否更新模板，新模板ID
       data.itemNodeData.forEach(function (node) {
         /* 可以更新的节点审核状态：未完成 || 审核驳回 || 撤销审核 */
         if (node.node_audit_status === 0 || node.node_audit_status === 4 || node.node_audit_status === 6) {
           if (newNodes[node.node_id]) {
-            /* 合并__ 模板有，原始有：根据模板公式重新计算 */
-            data[node.node_id] = Object.assign({}, node, newNodes[node.node_id], otherData)
-            delete newNodes[node.node_id]
+            // /* 合并__ 模板有，原始有：根据模板公式重新计算 */
+            // data[node.node_id] = Object.assign({}, node, newNodes[node.node_id], otherData, { nodesumbit_type: 2 })
+            // delete newNodes[node.node_id]
+            if (String(node.is_complete) === '1') {
+              /* 合并__ 节点已完成，不做修改 */
+              data[node.node_id] = Object.assign({}, node)
+              delete newNodes[node.node_id]
+            } else {
+              /* 合并__ 模板有，原始有：根据模板公式重新计算，保留输入值（time） */
+              const newNodeData = {} // 模板数据
+              for (const x in newNodes[node.node_id]) {
+                const item = newNodes[node.node_id][x]
+                if (item !== null && item !== '') {
+                  newNodeData[x] = item
+                }
+              }
+              const { time, change_plan_time, change_remaark, is_change, text } = node //    当前输入值
+              data[node.node_id] = Object.assign({}, node, newNodeData, otherData, { time, change_plan_time, change_remaark, is_change, text, nodesumbit_type: 2 })
+              delete newNodes[node.node_id]
+            }
           } else {
             /* 删除__ 模板没有，原始有：标记删除 */
             node.is_delete = 0 // 删除标记
+            node.nodesumbit_type = 3
             data[node.node_id] = Object.assign({}, node, otherData)
           }
         }
       })
       /* 新增__ 模板有，原始没有：新增 */
       for (const x in newNodes) {
-        data[x] = Object.assign({}, newNodes[x], otherData)
+        data[x] = Object.assign({}, newNodes[x], otherData, { nodesumbit_type: 1 })
       }
       /* 提取：变量日期 */
       for (const x in data) {
@@ -185,7 +203,7 @@ Tool.returnTableData = function (state) {
       for (const x in data) {
         const node = data[x]
         if (node instanceof Object && node.node_id) {
-          const { sys_clac_formula, max_section_value, min_section_value } = node
+          const { sys_clac_formula, max_section_value, min_section_value, submit_type } = node
           const now = node.time ? node.time : that._returnTime(sys_clac_formula, startEndDateMap)
           const max = that._returnTime(max_section_value, startEndDateMap)
           const min = that._returnTime(min_section_value, startEndDateMap)
@@ -193,13 +211,18 @@ Tool.returnTableData = function (state) {
           node.max_plant_enddate = max
           node.min_plant_enddate = min
           node.change_plan_time = node.change_plan_time || ''
-          node.error = status
+          node.error = now === '/' ? false : status
           node.maxMinText = maxMinText
           node.first_plant_enddate = now
           node.time = now
           node.is_delete = 1
-          node.api_submit_type = 3
+          node.change_remaark = node.change_remaark || ''
           node.text = node.change_remaark
+          if (now === '' && String(submit_type) === '1') { // 时间 === '' && 系统计算
+            node.otherType = 1
+          } else {
+            node.otherType = 0
+          }
           data[node.node_id] = Object.assign({}, node)
         }
       }
@@ -207,19 +230,25 @@ Tool.returnTableData = function (state) {
       /* ----- 初始化 || 不切换新模板 ----- */
       data.itemNodeData.forEach(function (node) {
         const otherData = { is_change_template: 0, node_template_id: '' } // 是否更新模板，新模板ID
-        const { sys_clac_formula, max_section_value, min_section_value } = node
+        const { sys_clac_formula, max_section_value, min_section_value, submit_type } = node
         const first_plant_enddate = node.first_plant_enddate ? node.first_plant_enddate : that._returnTime(sys_clac_formula, startEndDateMap)
         const now = node.time ? node.time : first_plant_enddate
         const max = that._returnTime(max_section_value, startEndDateMap)
         const min = that._returnTime(min_section_value, startEndDateMap)
         const { status, maxMinText } = that._isError(max, min, now, order_time, deliver_date)
         node.first_plant_enddate = first_plant_enddate
-        node.error = status
+        node.error = now === '/' ? false : status
         node.maxMinText = maxMinText
         node.time = now
         node.is_delete = 1
-        node.api_submit_type = 2
+        node.nodesumbit_type = 0
+        node.change_remaark = node.change_remaark || ''
         node.text = node.change_remaark
+        if (now === '' && String(submit_type) === '1') { // 时间 === '' && 系统计算
+          node.otherType = 1
+        } else {
+          node.otherType = 0
+        }
         data[node.node_id] = Object.assign({}, node, otherData)
       })
     }
@@ -234,6 +263,9 @@ Tool.returnTableData = function (state) {
       arr_2.push(data) //                                              非草稿状态的分线
     } else {
       data.isShow = false
+      if (!data.submit_type) {
+        data.submit_type = 2
+      }
       arr_3.push(Object.assign({}, data, { count: 2, rowType: 1 })) // 草稿分线
       arr_3.push(Object.assign({}, data, { count: 0, rowType: 2 })) // 草稿分线
     }
@@ -248,27 +280,32 @@ Tool.returnTableData = function (state) {
       /* ----- 有主线：主线数据覆盖计算数据 ----- */
       const data_1 = arr_1[0][node.node_id] || {}
       node = Object.assign({}, node, data_1) // 将主线数值 赋值给 分线
-      console.log('主线赋值 ----- ', data_1, node)
     } else {
       /* ----- 没主线：补充属性 ----- */
       otherData = { is_change_template: 0, node_template_id: '' } // 是否更新模板，新模板ID
     }
-    const { sys_clac_formula, max_plant_enddate, max_section_value, min_plant_enddate, min_section_value } = node
+    const { sys_clac_formula, max_plant_enddate, max_section_value, min_plant_enddate, min_section_value, submit_type } = node
     const now = node.time ? node.time : that._returnTime(sys_clac_formula, startEndDateMap)
     const max = arr_1.length ? max_plant_enddate : that._returnTime(max_section_value, startEndDateMap)
     const min = arr_1.length ? min_plant_enddate : that._returnTime(min_section_value, startEndDateMap)
     const { status, maxMinText } = that._isError(max, min, now, order_time, deliver_date)
     if (arr_1.length) {
-      node.error = status
+      node.error = now === '/' ? false : status
     } else {
-      node.error = sys_clac_formula ? status : false
+      node.error = now === '/' || !sys_clac_formula ? false : status
     }
     node.maxMinText = maxMinText
     node.max_plant_enddate = max
     node.min_plant_enddate = min
     node.time = now
     node.first_plant_enddate = now
+    node.change_remaark = node.change_remaark || ''
     node.text = node.change_remaark
+    if (now === '' && String(submit_type) === '1') { // 时间 === '' && 系统计算
+      node.otherType = 1
+    } else {
+      node.otherType = 0
+    }
     newNodesObj[node.node_id] = Object.assign({}, node, otherData)
   })
   addGanttObj.forEach(function (item) {
@@ -276,13 +313,14 @@ Tool.returnTableData = function (state) {
       item[x] = Object.assign({}, newNodesObj[x], { plant_order_id: item.plant_order_id })
       item.isShow = false
       item.dataType = 'new'
+      item.submit_type = 1
     }
     newNodesArr.push(Object.assign({}, item, { count: 2, rowType: 1 }))
     newNodesArr.push(Object.assign({}, item, { rowType: 2 }))
   })
   /* ----- 返回 ----- */
   const arr = [].concat(arr_1, arr_2, arr_3, newNodesArr)
-  return arr
+  return [arr, Boolean(arr_3.length + newNodesArr.length)]
 }
 
 /**
@@ -298,7 +336,6 @@ Tool.returnTableList = function (state) {
     order_time = '', //      接口：下单时间
     deliver_date = '' //     接口：交货日期
   } = state
-  // console.log('tableData ----- ', tableData)
   if (isComputed) {
     /* ----- 处理当前节点 ----- */
     const [dataIndex, nodeId, nodeName] = changeIndexId.split('_')
@@ -330,7 +367,7 @@ Tool.returnTableList = function (state) {
               const { node_code, time, max_plant_enddate, min_plant_enddate } = node
               const { status, maxMinText } = that._isError(max_plant_enddate, min_plant_enddate, time, order_time, deliver_date)
               node.change_remaark = status ? node.change_remaark : ''
-              node.error = status
+              node.error = time === '/' ? false : status
               node.maxMinText = maxMinText
               startEndDateMap['${' + node_code + '}'] = time
             }
@@ -339,7 +376,7 @@ Tool.returnTableList = function (state) {
             const node = item[x]
             if (node instanceof Object && (node.node_id || node.node_code) && x !== nodeId) { // 其他节点
               /* 引用到此节点的其他节点：重新计算 */
-              const { sys_clac_formula, max_section_value, min_section_value } = node
+              const { sys_clac_formula, max_section_value, min_section_value, submit_type } = node
               if (sys_clac_formula.indexOf('${' + node_code + '}') > -1) { // 引用了此节点
                 const now = that._returnTime(sys_clac_formula, startEndDateMap)
                 const max = that._returnTime(max_section_value, startEndDateMap)
@@ -350,8 +387,13 @@ Tool.returnTableList = function (state) {
                 node.change_remaark = status ? `${nodeName} 节点变更后，重新计算` : ''
                 node.max_plant_enddate = max
                 node.min_plant_enddate = min
-                node.error = status
+                node.error = now === '/' ? false : status
                 node.maxMinText = maxMinText
+                if (now === '' && String(submit_type) === '1') { // 时间 === '' && 系统计算
+                  node.otherType = 1
+                } else {
+                  node.otherType = 0
+                }
               }
             }
           }
@@ -360,7 +402,7 @@ Tool.returnTableList = function (state) {
           for (const x in item) {
             const node = item[x]
             if (node instanceof Object && (node.node_id || node.node_code) && x !== nodeId) { // 其他节点
-              const { first_plant_enddate, sys_clac_formula, max_section_value, min_section_value } = node
+              const { first_plant_enddate, sys_clac_formula, max_section_value, min_section_value, submit_type } = node
               if (sys_clac_formula.indexOf('${' + node_code + '}') > -1) { // 引用了此节点
                 const now = first_plant_enddate
                 const max = that._returnTime(max_section_value, startEndDateMap)
@@ -371,8 +413,13 @@ Tool.returnTableList = function (state) {
                 node.change_remaark = ''
                 node.max_plant_enddate = max
                 node.min_plant_enddate = min
-                node.error = status
+                node.error = now === '/' ? false : status
                 node.maxMinText = maxMinText
+                if (now === '' && String(submit_type) === '1') { // 时间 === '' && 系统计算
+                  node.otherType = 1
+                } else {
+                  node.otherType = 0
+                }
               }
             }
           }
@@ -388,32 +435,25 @@ Tool.returnTableList = function (state) {
  * @param  {[Array]}  tableList       表格数据
  * @param  {[Object]} startEndDateMap 新数据的 jzz_data
  * @param  {[Int]}    audit_status    审核状态1暂存2提交审核6无审核直接通过
+ * @param  {[String]} p_item_gantt_id 主线甘特表id
  * @return {[Array]}  dataList        整理好的数据
  * @return {[Array]}  errorArr        报错信息
  */
-Tool.returnSubmitData = function (tableList, startEndDateMap, audit_status) {
+Tool.returnSubmitData = function (tableList, startEndDateMap, audit_status, p_item_gantt_id) {
   const dataList = []
   let errorArr = []
-  let p_item_gantt_id = ''
-  let p_item_gantt_detail_id = ''
+  let haveBlankNode = false // 是否存在空节点
   tableList.forEach(function (item, index) {
-    /* ----- 提取：主线属性属性 ----- */
-    if (index === 0 && item.itemNodeData && item.itemNodeData.length) {
-      const { item_gantt_id, item_gantt_detail_id } = item.itemNodeData[0]
-      p_item_gantt_id = item_gantt_id
-      p_item_gantt_detail_id = item_gantt_detail_id
-    }
     if (item.count && !item.isShow) {
       /* 报错：此工厂没选QC */
       if (!item.node_charge_person) {
         errorArr.push(`<p>${item.short_name}：需要选择QC负责人</p>`)
       }
       /* ----- 提取：提报的甘特表数据（dataList） ----- */
-      const { is_change_template, node_template_id, item_gantt_id, material_id, color_id, jzz_data = startEndDateMap, itemNodeData = [], nodeTempleteDetail = [], plant_order_id, ...map } = item
-      const { api_submit_type } = itemNodeData[0] || nodeTempleteDetail[0] || {}
+      const { node_charge_person, submit_type, is_change_template, node_template_id, item_gantt_id, material_id, color_id, jzz_data = startEndDateMap, plant_order_id, ...map } = item
       const data = {
+        node_charge_person, //
         p_item_gantt_id, //                    主线甘特表id
-        p_item_gantt_detail_id, //             主线计划甘特表明细id
         is_change_template, //                 是否更新模板
         node_template_id, //                   新模板ID
         item_gantt_id, //                      项目甘特表主键id
@@ -421,15 +461,15 @@ Tool.returnSubmitData = function (tableList, startEndDateMap, audit_status) {
         color_id, //                           颜色id
         audit_status, //                       审核状态1暂存2提交审核6无审核直接通过
         jzz_data: JSON.stringify(jzz_data), // 提报甘特表时的基准值
-        submit_type: api_submit_type, //       提交类型1新增，2修改，3更新模板
         plant_order_id, //                     委外单id
-        nodeDataList: [] //                    提报的节点信息
+        nodeDataList: [], //                   提报的节点信息
+        submit_type //                         提交类型1新增，2修改，3更新模板
       }
       /* ----- 提取：提报的节点信息（nodeDataList） ----- */
       for (const x in map) {
         const node = map[x]
         if (node instanceof Object && (node.node_id || node.node_code)) {
-          const { node_id, business_post_id, item_node_id, is_quote, first_plant_enddate, time, min_plant_enddate, max_plant_enddate, node_template_detail_id, text, error, node_name } = node
+          const { nodesumbit_type, node_id, business_post_id, item_node_id, first_plant_enddate, time, min_plant_enddate, max_plant_enddate, node_template_detail_id, node_name } = node
           const val = {
             node_id, //                                          节点id
             item_team_id: business_post_id, //                   负责岗位
@@ -438,7 +478,7 @@ Tool.returnSubmitData = function (tableList, startEndDateMap, audit_status) {
             min_plant_enddate, //                                最小完成时间
             max_plant_enddate, //                                最大完成时间
             node_template_detail_id, //                          模板明细id
-            nodesumbit_type: api_submit_type, //                 提交类型1新增，2修改，3更新模板
+            nodesumbit_type, //                                  提交类型1新增，2修改，3更新模板
             item_node_change: {} //                              异常记录
           }
           /* ----- 提取：异常记录（item_node_change） ----- */
@@ -454,17 +494,29 @@ Tool.returnSubmitData = function (tableList, startEndDateMap, audit_status) {
           }
           val.item_node_change = node_child
           /* ----- 验证 ----- */
+          const { error, text, otherType = 0 } = node
           const before = first_plant_enddate
-          if ((before !== time && time) && ((change_remaark !== text && change_remaark && error) || !error)) {
-            if (is_quote === 1 && (time === '' || time === '/')) {
-              /* 报错：被引用，值为'' || ‘/’ */
-              errorArr.push(`<p>${item.short_name} -- ${node_name} 节点：被其他节点引用，不能为空或/</p>`)
-            } else {
-              /* 提交：改变过的节点 ((初始时间 !== 当前时间 && 有当前时间) && ((现在异常原因 !== 原先异常原因 && 有现在异常原因 && 报错) || 不报错)) */
-              data.nodeDataList.push(val)
+          const submit_1 = before !== time && ((change_remaark && error) || !error) // 提交：时间有变化 && ((有现在异常原因 && 报错) || 不报错))
+          const submit_2 = before === time && error && change_remaark !== text //      提交：时间没变 && 报错 && 异常原因变了
+          const submit_3 = otherType === 1 && change_remaark //                        提交：计算为空的系统计算节点 && 有异常原因
+          const err_1 = before !== time && error && !change_remaark //                 报错：时间有变化 && 报错 && 没有异常原因
+          const err_2 = otherType === 1 && !change_remaark //                          报错：计算为空的系统计算节点 && 没有异常原因
+          if (!time) { /* 报错：时间为空 */
+            haveBlankNode = true
+            break
+          }
+          if (submit_1 || submit_2 || submit_3) { /* 提交 */
+            val.is_adjustment = 1
+            if (val.nodesumbit_type !== 3) {
+              if (submit_type === 1) {
+                val.nodesumbit_type = 1
+                val.item_node_id = null
+              } else {
+                val.nodesumbit_type = 2
+              }
             }
-          } else if ((before !== time && time) && !change_remaark && error) {
-            /* 报错：没写异常原因 ((初始时间 !== 当前时间 && 有当前时间) && 没有异常原因 && 报错) */
+            data.nodeDataList.push(val)
+          } else if (err_1 || err_2) { /* 报错 */
             errorArr.push(`<p>${item.short_name} -- ${node_name} 节点：需要填写异常原因</p>`)
           }
         }
@@ -474,6 +526,9 @@ Tool.returnSubmitData = function (tableList, startEndDateMap, audit_status) {
       }
     }
   })
+  if (haveBlankNode) {
+    errorArr.push('<p>请完善全部节点后再提交</p>')
+  }
   if (!dataList.length && !errorArr.length) {
     errorArr = ['<p>节点时间未变更，请修改时间后再提交</p>']
   }
@@ -488,19 +543,20 @@ Tool.returnSubmitData = function (tableList, startEndDateMap, audit_status) {
  * @param {[Object]} nodeCodeObj 当前项目的节点值 { ${变量}: 自身时间 }
  */
 Tool._returnTime = function (str = '', nodeCodeObj = {}) {
-  const numStr = str.replace(/\$\{[\w-_:/]+\}/g, function (name) {
+  const asd = str.replace(/\$\{[\w-_:/]+\}/g, function (name) {
     return nodeCodeObj[name] ? new Date(nodeCodeObj[name]).getTime() : 0
-  }).replace(/[0-9]+/g, function (num, index) {
+  })
+  const numStr = asd.replace(/[0-9]+/g, function (num, index) {
     if (num.length < 13) {
       let isChange = true
       let beforeStr = ''
       let afterStr = ''
       let numStr = 0
       if (index !== 0) {
-        beforeStr = str[index - 1]
+        beforeStr = asd[index - 1]
       }
-      if (index + num.length !== str.length) {
-        afterStr = str[index + num.length]
+      if (index + num.length !== asd.length) {
+        afterStr = asd[index + num.length]
       }
       if (beforeStr === '*' || beforeStr === '/' || afterStr === '*' || afterStr === '/') {
         isChange = false
@@ -518,9 +574,9 @@ Tool._returnTime = function (str = '', nodeCodeObj = {}) {
   // eslint-disable-next-line
   const timeStr = eval(numStr)
   if (isNaN(timeStr)) {
-    return '/'
+    return ''
   } else if (new Date(timeStr).getTime() < new Date('2000-01-01').getTime()) {
-    return '/'
+    return ''
   } else {
     const d = new Date(timeStr)
     const year = d.getFullYear()
