@@ -95,6 +95,12 @@ td > .cell {
 .el-input > .el-input__inner {
   padding: 0 10px !important;
 }
+/**
+ * [日期选择器 input]
+ */
+.el-date-editor--date > .el-input__inner {
+  padding-left: 30px !important;
+}
 
 /**
  * [文本域 input:type=textarea]
@@ -241,7 +247,7 @@ td > .cell {
   border-color: #F56C6C !important;
 }
 .comTimeInput { /* 输入框：时间 */
-  width: 110px !important;
+  width: 120px !important;
   margin: 2px 0 !important;
 }
 .comDeleteBtn { /* 删除按钮：el-tag */

@@ -60,6 +60,7 @@ Dev.A_savePlantMterialGanttNode = function (state, getters, audit_status) {
   const { tableList } = getters
   const { dataList, errorArr } = Tool.returnSubmitData(tableList, startEndDateMap, audit_status, p_item_gantt_id)
   const { ganttType = 3, item_id = '2c915e107466aec50174674e8fb20000' } = JSON.parse(localStorage.getItem('NOVA_orderItemNodeFrom') || '{}')
+  console.log('提报 ----- dataList', dataList)
   if (errorArr.length) {
     MessageBox.alert(`${errorArr.join('')}`, '请完善后再提交', {
       dangerouslyUseHTMLString: true,

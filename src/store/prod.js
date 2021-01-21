@@ -12,7 +12,7 @@ const Prod = {}
  * [请求：初始数据]
  */
 Prod.A_submitDividingGanttSummary = function (state, commit) {
-  const { item_id = '2c9f10b6759ba20901759cbc71f10028', plant_order_id = '8a8a806275ba4f4b0175ba5efd0e0000' } = JSON.parse(localStorage.getItem('NOVA_orderItemNodeFrom') || '{}')
+  const { item_id = '2c9f10b676d559730176d68dbdcb018c', plant_order_id = '2c9f10b676d559730176daa5e0cf03b2' } = JSON.parse(localStorage.getItem('NOVA_orderItemNodeFrom') || '{}')
   const name = '初始数据'
   const obj = { item_id, type: 3, plant_order_id }
   const suc = function (res) {
@@ -93,9 +93,8 @@ Prod.A_savePlantMterialGanttNode = function (state, getters, audit_status) {
     const name = '提报'
     const obj = { item_id, node_template_id: activeTemplateId, ganttType, dataList: JSON.stringify(dataList) }
     const suc = function (res) {
-      const loading = Loading.service({ text: String(audit_status) === '1' ? '暂存成功' : '提交成功', spinner: 'el-icon-circle-check' })
+      Loading.service({ text: String(audit_status) === '1' ? '暂存成功' : '提交成功', spinner: 'el-icon-circle-check' })
       setTimeout(() => {
-        loading.close()
         // eslint-disable-next-line
         dg.close()
       }, 1000)
